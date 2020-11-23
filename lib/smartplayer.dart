@@ -1,3 +1,14 @@
+//
+//  smartplayer.dart
+//  smartplayer
+//
+//  GitHub: https://github.com/daniulive/SmarterStreaming
+//  website: https://www.daniulive.com
+//
+//  Created by daniulive on 2019/02/25.
+//  Copyright © 2014~2019 daniulive. All rights reserved.
+//
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -45,7 +56,7 @@ class EVENTID {
       EVENT_DANIULIVE_PLAYER_SDK | 0x91;
 }
 
-typedef SmartEventCallback = void Function(int, String, String);
+typedef SmartEventCallback = void Function(int, String, String, String);
 
 class SmartPlayerController {
   MethodChannel _channel;
@@ -63,7 +74,6 @@ class SmartPlayerController {
   }
 
   void _onEvent(Object event) {
-    // print('plugin event:'+event.toString());
     if (event != null) {
       Map valueMap = json.decode(event);
       String param = valueMap['param'];
@@ -72,7 +82,7 @@ class SmartPlayerController {
   }
 
   void _onError(Object error) {
-    // print('android error:'+error);
+    // print('error:'+ error);
   }
 
   Future<dynamic> _smartPlayerCall(String funcName) async {
@@ -103,7 +113,7 @@ class SmartPlayerController {
     return ret;
   }
 
-  /// 设置解码方式 false 软件解码 true 硬件解码 默认为false
+  /// 设置解码方式 false 软解码 true 硬解码 默认为false
   /// </summary>
   /// <param name="isHwDecoder"></param>
   Future<dynamic> setVideoDecoderMode(int isHwDecoder) async {
@@ -111,7 +121,7 @@ class SmartPlayerController {
   }
 
   /// <summary>
-  /// 设置音频输出模式: if 0: 自动选择; if with 1: audiotrack模式
+  /// 设置音频输出模式: if 0: 自动选择; if with 1: audiotrack模式, 此接口仅限于Android平台使用
   /// </summary>
   /// <param name="use_audiotrack"></param>
   Future<dynamic> setAudioOutputType(int useAudiotrack) async {
@@ -143,6 +153,24 @@ class SmartPlayerController {
   }
 
   /// <summary>
+  /// 设置RTSP超时时间, timeout单位为秒，必须大于0
+  /// </summary>
+  /// <param name="timeout"></param>
+  Future<dynamic> setRTSPTimeout(int timeout) async {
+    return _smartPlayerCallInt('setRTSPTimeout', timeout);
+  }
+
+  /// <summary>
+  /// 设置RTSP TCP/UDP自动切换
+  /// 对于RTSP来说，有些可能支持rtp over udp方式，有些可能支持使用rtp over tcp方式.
+  /// 为了方便使用，有些场景下可以开启自动尝试切换开关, 打开后如果udp无法播放，sdk会自动尝试tcp, 如果tcp方式播放不了,sdk会自动尝试udp.
+  /// </summary>
+  /// <param name="is_auto_switch_tcp_udp"></param>
+  Future<dynamic> setRTSPAutoSwitchTcpUdp(int is_auto_switch_tcp_udp) async {
+    return _smartPlayerCallInt('setRTSPAutoSwitchTcpUdp', is_auto_switch_tcp_udp);
+  }
+
+  /// <summary>
   /// 设置快速启动该模式，
   /// </summary>
   /// <param name="is_fast_startup"></param>
@@ -156,6 +184,22 @@ class SmartPlayerController {
   /// <param name="mode"></param>
   Future<dynamic> setPlayerLowLatencyMode(int mode) async {
     return _smartPlayerCallInt('setPlayerLowLatencyMode', mode);
+  }
+
+  /// <summary>
+  /// 设置视频垂直反转
+  /// </summary>
+  /// <param name="is_flip"></param>
+  Future<dynamic> setFlipVertical(int is_flip) async {
+    return _smartPlayerCallInt('setFlipVertical', is_flip);
+  }
+
+  /// <summary>
+  /// 设置视频水平反转
+  /// </summary>
+  /// <param name="is_flip"></param>
+  Future<dynamic> setFlipHorizontal(int is_flip) async {
+    return _smartPlayerCallInt('setFlipHorizontal', is_flip);
   }
 
   /// <summary>
@@ -178,6 +222,15 @@ class SmartPlayerController {
       int isReport, int reportInterval) async {
     return _smartPlayerCallIntInt(
         'setReportDownloadSpeed', isReport, reportInterval);
+  }
+
+  /// <summary>
+  /// Set playback orientation(设置播放方向)，此接口仅适用于Android平台
+  /// </summary>
+  /// <param name="surOrg"></param>
+  /// surOrg: current orientation,  PORTRAIT 1, LANDSCAPE with 2
+  Future<dynamic> setOrientation(int surOrg) async {
+    return _smartPlayerCallInt('setOrientation', surOrg);
   }
 
   /// <summary>
@@ -226,6 +279,16 @@ class SmartPlayerController {
   /// <param name="size"></param>
   Future<dynamic> setRecorderFileMaxSize(int size) async {
     return _smartPlayerCallInt('setRecorderFileMaxSize', size);
+  }
+
+  /// <summary>
+  /// 设置录像时音频转AAC编码的开关
+  /// aac比较通用，sdk增加其他音频编码(比如speex, pcmu, pcma等)转aac的功能.
+  /// </summary>
+  /// <param name="is_transcode"></param>
+  /// is_transcode: 设置为1的话，如果音频编码不是aac，则转成aac，如果是aac，则不做转换. 设置为0的话，则不做任何转换. 默认是0.
+  Future<dynamic> setRecorderAudioTranscodeAAC(int is_transcode) async {
+    return _smartPlayerCallInt('setRecorderAudioTranscodeAAC', is_transcode);
   }
 
   /// <summary>
@@ -278,7 +341,6 @@ class SmartPlayerController {
 
     List<String> strs = param.split(',');
 
-    // String player_handle = strs[0];
     String code = strs[1];
     String param1 = strs[2];
     String param2 = strs[3];
@@ -286,88 +348,80 @@ class SmartPlayerController {
     String param4 = strs[5];
 
     int evCode = int.parse(code);
-    // print("[onNTSmartEvent] code: 0x" + evCode.toRadixString(16));
-    var p1, p2;
+
+    var p1, p2, p3;
     switch (evCode) {
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_STARTED:
-        // print("开始。。");
+        print("开始。。");
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_CONNECTING:
-        // print("连接中。。");
+        print("连接中。。");
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_CONNECTION_FAILED:
-        // print("连接失败。。");
+        print("连接失败。。");
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_CONNECTED:
-        // print("连接成功。。");
+        print("连接成功。。");
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_DISCONNECTED:
-        // print("连接断开。。");
+        print("连接断开。。");
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_STOP:
-        // print("停止播放。。");
+        print("停止播放。。");
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_RESOLUTION_INFO:
-        // print("分辨率信息: width: " + param1 + ", height: " + param2);
+        print("分辨率信息: width: " + param1 + ", height: " + param2);
         p1 = param1;
         p2 = param2;
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_NO_MEDIADATA_RECEIVED:
-        // print("收不到媒体数据，可能是url错误。。");
+        print("收不到媒体数据，可能是url错误。。");
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_SWITCH_URL:
-        // print("切换播放URL。。");
+        print("切换播放URL。。");
         break;
 
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_CAPTURE_IMAGE:
-        // print("快照: " + param1 + " 路径：" + param3);
+        print("快照: " + param1 + " 路径：" + param3);
 
         if (int.parse(param1) == 0) {
-          // print("截取快照成功。.");
+           print("截取快照成功。.");
         } else {
-          // print("截取快照失败。.");
+           print("截取快照失败。.");
         }
         p1 = param1;
         p2 = param3;
         break;
 
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_RECORDER_START_NEW_FILE:
-        // print("[record]开始一个新的录像文件 : " + param3);
-        p1 = param3;
+        print("[record]开始一个新的录像文件 : " + param3);
+        p3 = param3;
         break;
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_ONE_RECORDER_FILE_FINISHED:
-        // print("[record]已生成一个录像文件 : " + param3);
-        p1 = param3;
+        print("[record]已生成一个录像文件 : " + param3);
+        p3 = param3;
         break;
 
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_START_BUFFERING:
-        // print("Start_Buffering");
+        print("Start_Buffering");
         break;
 
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_BUFFERING:
-        // print("Buffering: " + param1);
+        print("Buffering: " + param1 + "%");
         p1 = param1;
         break;
 
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_STOP_BUFFERING:
-        // print("Stop_Buffering");
+        print("Stop_Buffering");
         break;
 
       case EVENTID.EVENT_DANIULIVE_ERC_PLAYER_DOWNLOAD_SPEED:
-        // print("download_speed:" +
-        //     param1 +
-        //     "Byte/s" +
-        //     ", " +
-        //     (double.parse(param1) * 8 / 1000).toString() +
-        //     "kbps" +
-        //     ", " +
-        //     (double.parse(param1) / 1024).toString() +
-        //     "KB/s");
+         print("download_speed:" + (double.parse(param1) * 8 / 1000).toStringAsFixed(0) + "kbps" + ", " + (double.parse(param1) / 1024).toStringAsFixed(0) + "KB/s");
         p1 = param1;
         break;
     }
     if (_eventCallback != null) {
-      _eventCallback(evCode, p1, p2);
+      _eventCallback(evCode, p1, p2, p3);
     }
   }
 }
